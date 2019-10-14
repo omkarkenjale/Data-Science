@@ -1,0 +1,113 @@
+---
+title: "Assignment 2"
+---
+
+Question No. 1
+
+(a) Use the read.csv() function to read the data into R, or the csv library to read in the data with python. In R you will load the data into a dataframe. Call the loaded data college. Ensure that your column headers are not treated as a row of data. 
+
+```{r}
+setwd("D:/wsu/Data Science/assgn2/")
+college <- read.csv("College.csv")
+#To ensure that column headers are not treated as a row of data, following command can be used:
+rownames(college) <- college[, 1]
+View(college)
+#R will create a row.names column with the name of each university and will avoid performing calculations on the row names. 
+college <- college[, -1] 
+View(college)
+```
+
+(b) Find the median cost of books for all schools in this dataset.
+```{r}
+summary(college$Books)
+median(college$Books)
+```
+
+(c) Produce a scatterplot that shows a relationship between two features of your choice in the dataset. Ensure it has appropriate axis labels and a title. 
+```{r}
+plot(college$Grad.Rate, college$Top10perc, main = "Graduation Rate", xlab = "Top10perc", ylab = "Grade.Rate")
+# It can be interpreted from the graph that highest number of students from the top 10% of their high school class does not necessarily have higher graduation rate.
+```
+(d) Produce a histogram showing the overall enrollment numbers (P.Undergrad plus F.Undergrad) for both public and private (Private) schools. Ensure it has appropriate axis labels and a title. 
+```{r}
+#Combining F.undergrad and P.undergrad
+enroll = college$F.Undergrad+college$P.Undergrad
+#Splitting
+public = which(college$Private == "No")
+private = which(college$Private == "Yes")
+  
+#mfcol=c(nrows, ncols) fills in the matrix by columns  
+par(mfcol = c(1,2))
+hist(enroll[public], col="Red", main = "Public Enrollment", xlab = "Public Enroll", ylab = "value")
+hist(enroll[private], col="Blue", main = "Private Enrollment", xlab = "Private Enroll", ylab = "value")
+```
+
+
+(e) Create a new qualitative variable, called Top, by binning the Top25perc variable into two categories. Specifically, divide the schools into two groups based on whether or not the proportion of students coming from the top 25% of their high school classes exceeds 50%. Now produce side-by-side boxplots of acceptance rate (based on Accept and Apps) with respect to the two Top categories (Yes and No). How many top universities are there?
+```{r}
+Top =rep ("No",nrow(college))
+Top [college$Top25perc >50]="Yes"
+Top =as.factor (Top)
+college =data.frame(college,Top)
+#New qualitative variable Top
+summary(college$Top)
+boxplot(college$Apps ~ college$Top, col = c("blue", "green"), main = "App versus Top", xlab = "Top", ylab = "Apps")
+boxplot(college$Accept ~ college$Top, col = c("blue", "green"), main = "Accept versus Top", xlab = "Top", ylab = "Accept")
+#There are 449 Top Universities.
+```
+
+(f) Continue exploring the data, producing two or more new plots of any type, and provide a brief summary of your hypotheses and what you discover. You may use additional plots or numerical descriptors as needed. Feel free to think outside the box on this one but if you want something to point you in the right direction, look at the summary statistics for various features, and think about what they tell you. Perhaps try plotting various features from the dataset against each other and see if any patterns emerge.
+```{r}
+par(mfrow = c(2,2))
+plot(college$Outstate, college$Room.Board, xlab = "Outstate", ylab = "Room and board costs")
+plot(college$Outstate, college$Personal, xlab = "Outstate", ylab = "Personal spending")
+plot(Top, college$Room.Board, xlab = "Top", ylab = "Room.Board")
+plot(Top, college$Personal, xlab = "Top", ylab = "Personal")
+#It can interpreted from the graphs that outstate tutition fees have a positive relationship with accommodation fees whereas personal expenditure is equivalent in case of Top and Non-Top Universitites.
+```
+
+Question No. 2
+
+(a) Specify which of the predictors are quantitative, and which are qualitative? Keep in mind that a qualitative variable may be represented as a quantitative type in the dataset, or the reverse. You may wish to adjust the types of your variables based on your findings.
+```{r}
+#missing values have been removed from the data
+auto <- read.csv("Auto.csv", na.strings = "?")
+auto <- na.omit(auto)
+dim(auto)
+str(auto)
+#Quantitative: mpg, cylinders, displacement, horsepower, weight, acceleration, year.
+#Qualitative: name, origin
+```
+
+(b) What is the range, mean and standard deviation of each quantitative predictor?
+```{r}
+#Range
+sapply(auto[,1:7], range)
+#Mean
+sapply(auto[,1:7], mean)
+#Standard deviation
+sapply(auto[,1:7], sd)
+```
+
+(c) Now remove the 45th through 85th (inclusive) observations from the dataset. What is the range, mean, and standard deviation of each predictor in the subset of the data that remains?
+```{r}
+subAuto = auto[-(45:85),]
+#Range
+sapply(subAuto[,1:7], range)
+#Mean
+sapply(subAuto[,1:7], mean)
+#Standard Deviation
+sapply(subAuto[,1:7], sd)
+```
+
+(d) Using the full data set, investigate the predictors graphically, using scatterplots, correlation scores or other tools of your choice. Create some plots highlighting the relationships you find among the predictors. Explain briefly what the relationships between variables are, and what they mean.
+```{r}
+# Relationship of predictors with mpg
+par(mfrow = c(2,2))
+plot(auto$displacement, auto$mpg, xlab = "displacement", ylab = "mpg")
+plot(auto$horsepower, auto$mpg, xlab = "horsepower", ylab = "mpg")
+plot(auto$weight, auto$mpg, xlab = "weight", ylab = "mpg")
+plot(auto$acceleration, auto$mpg, xlab = "acceleration", ylab = "mpg")
+boxplot(auto$mpg ~ auto$year, xlab = "year", ylab = "mpg")
+#The predictors have a irregular relationship with mpg Whereas higher acceleration may or may not compare to higher gas mileage/ fuel productivity.Another point that can be noted is that Older cars are moreover likely to be less effective in accordance to mpg(higher consumption).
+```
