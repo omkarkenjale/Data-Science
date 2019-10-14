@@ -1,0 +1,239 @@
+---
+title: 'Assignment #4'
+author: "Omkar Kenjale"
+---
+#Question no.1
+
+#This question involves the use of multiple linear regression on the Auto data set from the course webpage (https://scads.eecs.wsu.edu/index.php/datasets/). Ensure that you remove missing values from the dataframe, and that values are represented in the appropriate types.
+```{r}
+library(ggplot2)
+library(ISLR)
+library(dplyr)
+library(tidyr)
+
+ auto = read.csv ("https://scads.eecs.wsu.edu/wp-content/uploads/2017/09/Auto.csv", na.strings = "?")
+ auto <- na.omit(auto)
+ head(auto)
+```
+
+#a) Produce a scatterplot matrix which includes all the variables in the data set.
+```{r}
+pairs(~mpg+cylinders+displacement+horsepower+weight+acceleration+year+origin+name,data=auto,main="Simple Scatterplot Matrix")
+```
+
+#b) Compute the matrix of correlations between the variables. You will need to exclude the name variable, which is qualitative.
+```{r}
+# Excluding name column
+ cor(auto[1:8])
+```
+
+#c) Perform a multiple linear regression with mpg as the response and all other variables except name as the predictors. Show a printout of the result (including coefficient, error and t values for each predictor). Comment on the output:
+```{r}
+model <- lm(mpg ~ ., data = auto[1:8])
+ summary(model)
+```
+
+#i. Which predictors appear to have a statistically significant relationship to the response, and how do you determine this?
+```{r}
+#The coefficient t-value is a degree of how many standard deviations our coefficient appraise is distant away from 0. After performing multiple linear regression with mpg, the outline shows that variables displacement, weight, year and origin are all critical predictors as they have t value far away from 0 which may be a strong prove against the null hypothesis.
+
+#Another way to interpret the summary result is by observing p-value. A small p-value demonstrates that it is improbable we will observe a relationship between the predictor and response (mpg) factors due to chance.Three stars (or marks) represent a profoundly significant p-value. Subsequently, a little p-value for the intercept and the slope shows that we can dismiss the null hypothesis which permits us to conclude that there's a relationship between mpg and displacement, weight, year and origin.
+```
+
+#ii. What does the coefficient for the displacement variable suggest, in simple terms?
+```{r}
+#The displacement depicts the estimate of 0.01 ~ o.o2 which simply means the increasing the displacement would be efficient to increase in mpg(mileage) at a support rate of 10 ~ 20%.
+```
+
+#d) Produce diagnostic plots of the linear regression fit. Comment on any problems you see with the fit. Do the residual plots suggest any unusually large outliers? Does the leverage plot identify any observations with unusually high leverage?
+```{r}
+ par(mfrow = c(2,2))
+ plot(model)
+```
+```{r}
+#The Residual plots display a non-linearity pattern of the model. An outlier is an perception that lies an irregular distance from other values in a random test from a populace.By the general definition, the Residuals verses Leverage plot and Normal Q-Q plot display higher leverage. The Leverage plot shows a data point (14) with high leverage.
+```
+
+#e) Fit linear regression models with interaction effects. Do any interactions appear to be statistically significant?
+```{r}
+model1 <- lm(mpg ~ . * ., data = auto[,1:8])
+
+#model1 <-lm(mpg ~.^2, data =auto[,1:8]) #include all possible interactions summary(model)
+summary(model1)
+```
+```{r}
+#The interactions between displacement and year, acceleration and year, and acceleration and origin all have low p values that indicate significance.
+```
+
+#f) Try transformations of the variables with X3 and log(X). Comment on your findings.
+```{r}
+#Normal data
+autonorm <- lm(mpg ~ (displacement) + (horsepower) + (weight) + (acceleration), data = auto)
+summary(autonorm)
+
+#X^3 transformation
+autox3 <- lm(mpg ~ (displacement)^3 + (horsepower)^3 + log(weight)^3 + (acceleration)^3, data = auto)
+summary(autox3)
+
+#log(x) transformation
+autologx <- lm(mpg ~ log(displacement) + log(horsepower) + log(weight) + log(acceleration), data = auto)
+summary(autologx)
+
+
+```
+```{r}
+#Applying the log function to each of the variables resulted in the highest R2 value and F-statistic which is around 6% increase. Another finding from comparing the transformed variables is that in case of x^3 transformation, we can observe a steady increase in F-test and R^2 value which is approximately around 3%.
+plot(autologx)
+```
+
+#Question no.2
+
+#This problem involves the Boston data set, which we saw in the lab. We will now try to predict per capita crime rate using the other variables in this data set. In other words, per capita crime rate is the response, and the other variables are the predictors.
+```{r}
+ library(MASS)
+ summary(Boston)
+```
+
+
+#a) For each predictor, fit a simple linear regression model to predict the response. Include the code, but not the output for all models in your solution. In which of the models is there a statistically significant association between the predictor and the response? Considering the meaning of each variable, discuss the relationship between crim and nox, chas, medv and dis in particular. How do these relationships differ?
+```{r}
+Boston <- na.omit(Boston)
+attach(Boston)
+
+#Comparison
+czn <- lm(crim ~ zn)
+cindus <- lm(crim ~ indus)
+cchas <- lm(crim ~ chas)
+cnox <- lm(crim ~ nox)
+crm <- lm(crim ~ rm)
+cage <- lm(crim ~ age)
+cdis <- lm(crim ~ dis)
+crad <- lm(crim ~ rad)
+ctax <- lm(crim ~ tax)
+cptratio <- lm(crim ~ ptratio)
+cblack <- lm(crim ~ black)
+clstat <- lm(crim ~ lstat)
+cmedv <- lm(crim ~ medv)
+
+# By comparing the statistics for variables, all variables expect chas have value less than 0.05 which is a sufficient to reject the null hypothesis. Only chas variable is not significant for prediction of per capita crime rate.
+
+# Relation between crim and nox
+summary(cnox)
+plot(cnox)
+
+# Relation between crim and cchas
+summary(cchas)
+plot(cchas)
+
+# Relation between crim and medv
+summary(cmedv)
+plot(cmedv)
+
+# Relation between crim and dis
+summary(cdis)
+plot(cdis)
+
+#Numerous of the plots show signs of non-linearity within the residuals. Putting it in simple terms, the residuals can be said to be of stochastic nature. This recommends some type of variable change is fitting. Which variable change to apply can be guided by the shapes of the residuals within the plots. 
+```
+
+#b) Fit a multiple regression model to predict the response using all the predictors. Describe your results. For which predictors can we reject the null hypothesis H0 : Î²j = 0?
+```{r}
+cmp <-lm(crim~.,Boston)
+summary(cmp)
+```
+```{r}
+#From the outline we will say that the null hypothesis can be rejected for variables zn, dis, rad, black, medv as their p-value is less than 0.05.
+```
+
+#c) How do your results from (a) compare to your results from (b)? Create a plot displaying the univariate regression coefficients from (a) on the x-axis, and the multiple regression coefficients from (b) on the y-axis. That is, each predictor is displayed as a single point in the plot. Its coefficient in a simple linear regression model is shown on the x-axis, and its coefficient estimate in the multiple linear regression model is shown on the y-axis. What does this plot tell you about the various predictors?
+```{r}
+simple<-vector("numeric",0)
+simple<-c(simple,czn$coefficients[2])
+simple<-c(simple,cindus$coefficients[2])
+simple<-c(simple,cchas$coefficients[2])
+simple<-c(simple,cnox$coefficients[2])
+simple<-c(simple,crm$coefficients[2])
+simple<-c(simple,cage$coefficients[2])
+simple<-c(simple,cdis$coefficients[2])
+simple<-c(simple,crad$coefficients[2])
+simple<-c(simple,ctax$coefficients[2])
+simple<-c(simple,cptratio$coefficients[2])
+simple<-c(simple,cblack$coefficients[2])
+simple<-c(simple,clstat$coefficients[2])
+simple<-c(simple,cmedv$coefficients[2])
+multi<-vector("numeric",0)
+multi<-c(multi,cmp$coefficients)
+multi<-multi[-1]
+plot(simple,multi,col='blue')
+```
+```{r}
+#In case of simple regression, slope representation is the average increase rate whereas overlooking the other predictors. It's very inverse in case of multiple regression where slope is averaged without overlooking the other predictors. This clarifies the distinction between coefficients of simple and multiple regression which also clarifies why the relationship is stronger between response and predictors in simple regression whereas, in case of multiple regression, the relationship is quite low.
+```
+
+#d) Is there evidence of non-linear association between any of the predictors and the response? To answer this question, for each predictor X, fit a model of the form
+#Y = Î²0 + Î²1X + Î²2X2 + Î²3X3 + Îµ
+#Hint: use the poly() function in R. Again, include the code, but not the output for each model in your solution, and instead describe any non-linear trends you uncover.
+```{r}
+#polynomial of degree 3
+cznp <- lm(crim ~ poly(zn, 3))
+cindusp <- lm(crim ~ poly(indus, 3))
+cnoxp <- lm(crim ~ poly(nox, 3))
+crmp <- lm(crim ~ poly(rm, 3))
+cagep <- lm(crim ~ poly(age, 3))
+cdisp <- lm(crim ~ poly(dis, 3))
+cradp <- lm(crim ~ poly(rad, 3))
+ctaxp <- lm(crim ~ poly(tax, 3))
+cptratiop <- lm(crim ~ poly(ptratio, 3))
+cblackp <- lm(crim ~ poly(black, 3))
+clstatp <- lm(crim ~ poly(lstat, 3))
+cmedvp <- lm(crim ~ poly(medv, 3))
+
+#First off `chas` does not, it is a binary 0/1 indicator variable, so it does not make sense to do a polynomial on this one.
+
+#Comparing the p-values and their asterisk significance, we can say that:
+
+#zn, has some support for x^2.
+#indus has support for x^2 and x^3
+#nox also has support for x^2 and x^3
+#rm has support for x^2
+#age has support for x^2 and x^3
+#dis has support for x^2 and x^3
+#rad has support for x^2
+#tax has support for x^2
+#ptratio has support for x^2 and x^3
+#black has support for x only
+#lstat has support for x^2
+#medv has support for x^2 and x^3
+
+#Also, no non-linear effect is visible.
+```
+
+#Question no.3
+
+#An important assumption of the linear regression model is that the error terms are uncorrelated (independent). But error terms can sometimes be correlated, especially in time-series data.
+
+#a) What are the issues that could arise in using linear regression (via least squares estimates) when error terms are correlated? Comment in particular with respect to
+i) regression coefficients
+ii) the standard error of regression coefficients
+iii) confidence intervals
+
+```{r}
+#Regression Coefficients:
+#In case if error terms are correlated, the regression coefficients stay unbiased, but they are not productive, i.e., minimum variance estimates.
+```
+
+```{r}
+#Standard error of regression coefficients:
+#If error terms are correlated, the mean square error may be seriously underestimated. The impact of this is that the standard errors are underestimated, the t-tests are expanded (show centrality when there is none)
+```
+
+```{r}
+#Confidence intervals:
+#Generally confidence intervals will be shorter than they should be. Calculation of confidence intervals and various significance tests for coefficients are all based on the presumptions of normally distributed errors. In case the error distribution is essentially non-normal, confidence intervals may be too large or too small.
+```
+
+#b) What methods can be applied to deal with correlated errors? Mention at least one method.
+```{r}
+#One of the strategy to deal with correlated errors is using bimodal kernel regression with cross-validation. Kernel regression functions makes a clear distinction between strategies requiring negative and positive methods associated with correlation. It factors the mean squared error which is imperative in case when errors are correlated.
+```
+
