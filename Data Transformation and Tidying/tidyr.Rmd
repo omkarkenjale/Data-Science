@@ -1,0 +1,163 @@
+---
+title: "personal"
+author: "Omkar Kenjale"
+---
+
+
+We will be using either the dplyr package from R to manipulate and clean up a dataset called msleep (mammals sleep) dataset.
+
+Load the data into R, and check the first few rows for abnormalities.
+
+Below are the tasks to perform. Before you begin, print the first few values of the columns with a header including “sleep”. (head())
+```{r}
+#Loading dplyr library
+library(dplyr)
+# set working directory
+setwd("D:/Data Science/3/")
+# Reading dataset
+sleep <- read.csv("msleep.csv")
+#Checking for missing values
+is.na(sleep)
+head(sleep)
+```
+
+a) Count the number of animals which weigh under 50 kilograms and sleep more than 16 hours a day. (filter() function)
+```{r}
+filter(sleep, sleep_total > 16, bodywt <= 50)
+```
+
+b) Print the name, order, sleep time and bodyweight of the animals with the 5 longest sleep times, in order of sleep time. (select(), arrange() function)
+```{r}
+longest = select(sleep, name, order, sleep_total, bodywt)
+msleep = arrange(longest, desc(sleep_total))
+head(msleep, 5)
+```
+
+c) Add two new columns to the dataframe; wt_ratio with the ratio of brain size to body weight, rem_ratio with the ratio of rem sleep to sleep time. If you think they might be useful, feel free to extract more features than these, and describe what they are. (mutate(), assign())
+```{r}
+ sleep %>% mutate(wt_ratio = brainwt / bodywt ) %>% mutate(rem_ratio = sleep_rem / sleep_total)%>% head()
+```
+
+d) Display the average, min and max sleep times for each order. (group_by(), summarise() function)
+```{r}
+sleep %>% group_by(order) %>% summarise(avg_sleep = mean(sleep_total), min_sleep = min(sleep_total), max_sleep = max(sleep_total)) %>% ungroup()
+```
+
+e) Impute the missing brain weights as the average wt_ratio for that animal’s order times the animal’s weight. Make a second copy of your dataframe, but this time impute missing brain weights with the average brain weight for that animal’s order. What assumptions do these data filling methods make? Which is the best way to impute the data, or do you see a better way, and why? You may impute or remove other variables as you find appropriate. Briefly explain your decisions. (group_by(), mutate())
+```{r}
+data1 <- sleep %>% group_by(order) %>% mutate(brainwt = ifelse(is.na(brainwt), mean(brainwt / bodywt, na.rm = TRUE) * bodywt, brainwt)) %>% ungroup()
+data1
+na.omit(data1[,"brainwt"])
+data2 <- sleep%>%group_by(order) %>%mutate(brainwt = ifelse(is.na(brainwt), mean(brainwt,na.rm = TRUE),
+brainwt)) %>% ungroup()
+data2
+na.omit(data2[,"brainwt"])
+```
+
+
+For this section, here (http://r4ds.had.co.nz/tidy-data.html#case-study). Grab the dataset from the tidyr package (tidyr::who), and tidy it.
+```{r}
+library(tidyr)
+who <- tidyr::who
+```
+
+
+a) Explain why this line
+#> mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
+is necessary to properly tidy the data. What happens if you skip this line?
+```{r}
+#From dataset it can be observed that variable names are marginally conflicting. In the event that we initiate a inquiry based on keyword "newrel_", we will get the error of "missing or few value". This mistake would influence the end results subsequently. Utilizing str_replace(), we can replace the characters "newrel_" with "new_rel". This will make the variable names consistent.
+```
+
+b) How many entries are removed from the dataset when you set na.rm to true in the gather command (in this dataset)?
+```{r}
+sum(is.na(who))
+# The total entries are 329394
+mm <- who %>% gather(new_sp_m014:newrel_f65, key = "key", value = "cases", na.rm = TRUE)
+sum(is.na(mm))
+# A total of 329394 entries are removed from the dataset when na.rm is set to TRUE.
+```
+
+c) Explain the difference between an explicit and implicit missing value, in general. Can you find any implicit missing values in this dataset, if so where?
+```{r}
+#Explicit missing value means the entries that are present in dataset but represented by NA.
+#Implicit missing value means that the value is simply not present in dataset.
+#We can use `complete` with the `gather` functions on dataset to find the count of implicit missing values.
+imp_gath <-
+  who %>%
+  gather(
+    new_sp_m014:newrel_f65,
+    key = "key",
+    value = "cases"
+  )
+imp_comp <-
+  imp_gath %>% complete(country, year, key)
+# We merge both dataset where there are no matching values
+imp_gath %>%
+  anti_join(second, by = c("country", "year", "key"))
+#There are no Implicit missing values in the dataset.
+```
+
+d) Looking at the features (country, year, var, sex, age, cases) in the tidied data, are they all appropriately typed? Are there any features you think would be better suited as a different type? Why or why not?
+```{r}
+who %>%   gather(key, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>%    mutate(key = stringr::str_replace(key, "newrel", "new_rel")) %>%   separate(key, c("new", "var", "sexage")) %>%    select(-new, -iso2, -iso3) %>%    separate(sexage, c("sex", "age"), sep = 1) 
+#The essential characteristics of tidy data are well-balanced structure, simple control and visualization. The obtained tidy data fulfills all the above highlights. The features are suitably typed as they depict a generalized introduction of data. These sets of features of specified type if plotted would provide a summarized pattern of the information.
+```
+
+e) Explain in your own words what a gather operation is, and give an example of a situation when it might be useful. Do the same for spread.
+```{r}
+work <- tibble(
+ id = c(1, 2, 3, 4),
+ trt = c( "treatment", "control", "treatment", "control"),
+ work.t1 = c(0.012, 0.25, 0.2975, 0.277),
+ home.t1 = c(0.57, 0.319, 0.783, 0.617),
+ work.t2 = c(0.119, 0.123, 0.567, 0.289),
+ home.t2 = c(0.790, 0.245, 0.243, 0.831)
+)
+#Untidy Data
+work
+#gather():
+#There are times when our information is considered unstacked and a common trait of concern is spread out over columns. To reformat the information such that these common properties are accumulated together as a single variable, the gather() function will take numerous columns and collapse them into key-value sets, copying all other columns as required.
+#Using Gather function
+long_DF <- work %>% gather(Key, time, work.t1:work.t2, home.t1:home.t2)
+long_DF
+#spread():
+#The spread() work spreads a key-value pair over multiple columns.
+#Using spread() on long_DF.
+wide_DF <- long_DF %>% spread(Key, time)
+wide_DF
+```
+
+f) Generate an informative visualization, which shows something about the data. Give a brief description of what it shows, and why you thought it would be interesting to investigate.
+```{r}
+library(ggplot2)
+who %>%
+  gather(code, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>% 
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1) %>%
+  group_by(country, year, sex) %>%
+  summarize(total_case = sum(value)) %>%
+  filter(country == 'China') %>%
+  ggplot() +
+  geom_point(mapping = aes(x = year, y = total_case, color = sex,
+                          group = country))
+```
+
+g) Suppose you have the following dataset called siteDemo:
+
+You know that the U30.F column is the number of female users under 30 on the site, O30.M denotes the number of male users 30 or older on the site, etc. Construct this table, and show the code you would use to tidy this dataset (using gather(), separate() and mutate() or melt(), pivot(), and assign()) such that the columns are organized as: Site, AgeGroup, Gender and Count.
+```{r}
+siteDemo <- tibble(
+ Site = c( "facebook", "myspace", "snapchat", "twitter"),
+ U30.F = c(32, 1, 6, 17),
+ U30.M = c(31, 5, 4, 23),
+ O30.F = c(60, 3, 3, 12),
+ O30.M = c(58, 6, 2, 17)
+)
+siteDemo
+phase1 <- siteDemo %>% gather(Age, Count, U30.F:U30.M, O30.F:O30.M)
+phase2 <- phase1 %>% separate(Age, c("AgeGroup","Gender"))
+phase2
+```
