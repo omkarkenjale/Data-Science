@@ -1,0 +1,229 @@
+---
+title: "Project"
+author: "Omkar Kenjale"
+---
+
+```{r}
+library("devtools")
+install_github("masalmon/convertagd")
+library(dplyr)
+library(caret)
+library(tidyverse)
+library(PhysicalActivity)
+library(nnet)
+library(ggplot2)
+library(reshape2)
+library(naivebayes)
+library(funModeling) 
+library(tidyverse) 
+library(Hmisc)
+library(FREQ)
+library(randomForest)
+library(e1071)
+library("devtools")
+install_github("dipetkov/actigraph.sleepr")
+library("actigraph.sleepr")
+library(class)
+library(neuralnet)
+library(ISLR)
+library(kernlab)
+```
+
+```{r}
+#Reading Accelerometer data
+ag.part1 <- read_agd("C:/Users/kenja/Downloads/GPS_Accelorometer_Clean/Participant1/AccelrometerData.agd")
+ag.part2 <- read_agd("C:/Users/kenja/Downloads/GPS_Accelorometer_Clean/Participant2/AccelrometerData.agd")
+ag.part3 <- read_agd("C:/Users/kenja/Downloads/GPS_Accelorometer_Clean/Participant3/AccelrometerData.agd")
+```
+
+```{r}
+#Magnitude of the three-axis counts
+suppressMessages(library("dplyr"))
+#Participant 1
+ag.part1 <- ag.part1 %>% select(timestamp, starts_with("axis"))
+ag.part1 %>%
+  mutate(magnitude = sqrt(axis1 ^ 2 + axis2 ^ 2 + axis3 ^ 2)) %>%
+  head()
+#Participant 2
+ag.part2 <- ag.part2 %>% select(timestamp, starts_with("axis"))
+ag.part2 %>%
+  mutate(magnitude = sqrt(axis1 ^ 2 + axis2 ^ 2 + axis3 ^ 2)) %>%
+  head()
+#Participant 3
+ag.part3 <- ag.part3 %>% select(timestamp, starts_with("axis"))
+ag.part3 %>%
+  mutate(magnitude = sqrt(axis1 ^ 2 + axis2 ^ 2 + axis3 ^ 2)) %>%
+  head()
+```
+
+```{r}
+#Reintegrating Accelerometer data from 10 to 60 sec time frame
+ag.part1 <- ag.part1 %>% collapse_epochs(60)
+ag.part2 <- ag.part2 %>% collapse_epochs(60)
+ag.part3 <- ag.part3 %>% collapse_epochs(60)
+```
+
+```{r}
+#Finding Sleep Time
+ag.part1 %>% apply_sadeh() %>% apply_tudor_locke()
+ag.part2 %>% apply_sadeh() %>% apply_tudor_locke()
+ag.part3 %>% apply_sadeh() %>% apply_tudor_locke()
+```
+
+```{r}
+#Non-wear period detection
+ag.part1 %>% apply_troiano()
+ag.part2 %>% apply_troiano()
+ag.part3 %>% apply_troiano()
+```
+
+```{r}
+#convert TIMESTAMP to a date-time class
+ag.part1$timestamp <- as.POSIXct(ag.part1$timestamp)
+ag.part2$timestamp <- as.POSIXct(ag.part2$timestamp)
+ag.part3$timestamp <- as.POSIXct(ag.part3$timestamp)
+```
+
+```{r}
+#Removing No-wear period Timestamps of Accelerometer data
+#Participant 1
+ag.part1 <- ag.part1[-c(1:4, 750:1351, 2172:2835, 3066:3165, 3556:4161, 4259:4357), ]
+
+#Participant 2
+ag.part2 <- ag.part2[-c(231:350, 523:921, 1110:1178, 1789:1869, 1881:2275, 2963:3036, 3187:3247, 3309:3770, 4726:5191, 5447:5548), ]
+
+#Participant 3
+ag.part3 <- ag.part3[-c(104:204, 229:756, 781:840, 1076:1251, 1585:2375, 2925:3667, 3769:3880), ]
+```
+
+```{r}
+#Loading Activity labels associated with dataset
+label1 <- read.csv("C:/Users/kenja/Downloads/labels/part1 - O.csv")
+label2 <- read.csv("C:/Users/kenja/Downloads/labels/part2 - O.csv")
+label3 <- read.csv("C:/Users/kenja/Downloads/labels/part3 - O.csv")
+
+#Assigning labels
+ag.part1$Activity <- label1$Activity
+ag.part2$Activity <- label2$Activity
+ag.part3$Activity <- label3$Activity
+```
+
+```{r}
+#COnverting timestamp to numeric version
+ag.part1$timestamp <- as.numeric(ag.part1$timestamp)
+ag.part2$timestamp <- as.numeric(ag.part2$timestamp)
+ag.part3$timestamp <- as.numeric(ag.part3$timestamp)
+```
+
+```{r}
+#Combining Accelerometer data sets into one file
+main <- rbind(ag.part1, ag.part2, ag.part3)
+```
+
+```{r}
+#Plotting 
+ggplot(main, aes(x = main$timestamp)) + 
+  geom_line(aes(y = main$axis1), color = "purple") + 
+  geom_line(aes(y = main$axis2), color = "green") + 
+  geom_line(aes(y = main$axis3), color = "blue") +
+  xlab("TimeStamp") +
+  ylab("Axis")
+```
+
+
+```{r}
+#Scaling data
+main$Activity <- as.factor(main$Activity)
+main[1:4] = scale(main[1:4])
+```
+
+```{r}
+#Splitting dataset into training data and testing data
+training.samples <- main$Activity %>% 
+  createDataPartition(p = 0.7, list = FALSE)   #Ratio of 80% training data and 20% testing data
+train.data  <- main[training.samples, ]
+test.data <- main[-training.samples, ]
+```
+
+```{r}
+#Classification Models
+
+##Logistic regression Model
+  # Fit the model
+  model <- nnet::multinom(Activity ~., data = train.data)
+  # Summarize the model
+  summary(model)
+  # Make predictions
+  predicted.classes <- model %>% predict(test.data)
+  #Model accuracy
+  mean(predicted.classes == test.data$Activity)*100
+
+##Random Forest Model
+  # Fit the model
+  classifier = randomForest(x = train.data[-5],
+                          y = train.data$Activity,
+                         )
+  # Make predictions
+  y_pred = predict(classifier, newdata = test.data[-5])
+  # Model Accuracy
+  mean(y_pred == test.data$Activity)*100
+  
+##Naive Bayes model
+  #Fit the model
+  Naive_Bayes_Model=naiveBayes(Activity ~., data=train.data)
+  # Make predictions
+  B_Predictions=predict(Naive_Bayes_Model,test.data)
+  #Model Accuracy
+  mean(B_Predictions == test.data$Activity)*100
+  
+##KNN Model
+  
+#Traditional Implementation
+  #Converting label string into numeric factors for processing
+  a <- as.numeric(train.data$Activity)
+  b <- as.numeric(test.data$Activity)
+  #Fit the model
+  pr <- knn(train.data[1:4],test.data[1:4],cl=a,k=9)
+  #Create confusion matrix
+  tab <- table(pr,b)
+  #Model Accuracy
+  accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+  accuracy(tab)
+
+#Optimization for parameters
+  set.seed(400)
+  ctrl <- trainControl(method="repeatedcv",repeats = 3)
+  knnFit <- train(Activity ~ ., data = train.data, method = "knn", trControl = ctrl, preProcess = c("center","scale"),tuneLength = 20)
+  knnFit
+  plot(knnFit)
+  
+
+##Support vector machines
+  #Fit the model
+  classifier = svm(formula = Activity ~ ., 
+                 data = train.data, 
+                 type = 'C-classification', 
+                 kernel = 'linear') 
+  # Model Accuracy 
+  y_pred = predict(classifier, newdata = test.data[-5])
+  mean(y_pred == test.data$Activity)*100
+  
+#Optimization for SVM using kernlab package
+  linear.tune = tune.svm(Activity~., data=train.data, kernel="linear", cost=c(0.001, 0.01, 0.1, 1,5,10))
+  best.linear = linear.tune$best.model
+  tune.test = predict(best.linear, newdata=test.data)
+  table(tune.test, test.data$Activity)
+  plot(linear.tune)
+```
+
+```{r}
+#Assigning labels
+write.csv(main,"main.csv", row.names = TRUE)
+
+```
+
+
+
+
+
+
